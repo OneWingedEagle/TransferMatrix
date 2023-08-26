@@ -370,8 +370,8 @@ if(rotation &&length(Tr)>1)
            end
            
 % vertical axis of Faraday rotation
-hmin=-25;
-hmax=0;
+%hmin=-25;
+%hmax=0;
              axis([wn1,wn2,hmin,hmax]);
              hold on
              
@@ -559,7 +559,7 @@ end
       T3=TransferMatrix(eps2(3),gama2(3),omega,dd2(n,3),theta);
    end
      if(variable_d2(1)+variable_d2(2)+variable_d2(3)>0)
-      T123=T3*T2*T1;
+      T123=T1*T2*T3;
    end
     TT2=T123*TT2;
   end
