@@ -1,4 +1,4 @@
-function trans_mat_MO
+function trans_mat_MOH
 
 clear all
 

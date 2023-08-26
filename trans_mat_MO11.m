@@ -200,6 +200,12 @@ global epsin;
 global epsout;
 epsin=1;
 epsout=1;
+%line=getNewDataLine(fid);
+%numbs = str2num(line);
+%if(length(numbs)>0)
+%epsin=numbs(1);
+%epsout=numbs(2);
+%end
 
 wn0=wn1;
 
@@ -367,11 +373,8 @@ if(rotation &&length(Tr)>1)
             
              hmin=-(div+1)*5;
              
-           end
-           
-% vertical axis of Faraday rotation
-hmin=-25;
-hmax=0;
+             end
+hmin=0
              axis([wn1,wn2,hmin,hmax]);
              hold on
              
@@ -383,11 +386,12 @@ end
 if(transmit &&length(Tt)>1)
               figure(2)
                plot(Fn,Tt,colT);
-             %    axis([wn1,wn2,min(Tt),max(Tt)]);
+                 axis([wn1,wn2,min(Tt),max(Tt)]);
                 axis([wn1,wn2,0,1]);
                  hold on
             
 end
+
 
 
 
@@ -447,15 +451,6 @@ function [Ts Rs Fr]=TransferMatrixMultiLayer(eps1,epsdef,eps2,...
  
 global epsin
 global epsout;
-
-ev=1.60218e-19;
-wp=8.24*ev;
-wc=0.048;
-
-lam1=wvlen*1e-6;
-c0=299792458.0;
-w=2.0*pi()*c0/lam1;
-em=1-wp^2/(w*(w+1i*wc));
 
 variable_d1=[0 0 0];
 variable_d2=[0 0 0];
@@ -559,7 +554,7 @@ end
       T3=TransferMatrix(eps2(3),gama2(3),omega,dd2(n,3),theta);
    end
      if(variable_d2(1)+variable_d2(2)+variable_d2(3)>0)
-      T123=T3*T2*T1;
+      T123=T1*T2*T3;
    end
     TT2=T123*TT2;
   end
@@ -595,10 +590,7 @@ end
 
 
 function [T]=TransferMatrix(eps,gamma,omega,d,theta)
-  %disp('----------')
-  %eps
-  %gamma
-  %d
+  
      Q=gamma/eps;
 
   Dn=DynamicMatrix(eps,Q,omega,theta);
@@ -620,9 +612,9 @@ function [Pn]=PropagationMatrix(e1, Q,omega,d,theta)
   kv4=-sqrt(e1*(1-Q))*kz; 
   
    phi1=kv1(3)*d;
-   phi2=kv2(3)*d;
-   phi3=kv3(3)*d;
-   phi4=kv4(3)*d;
+   phi2=kv2(3)*d;;
+   phi3=kv3(3)*d;;  
+   phi4=kv4(3)*d;;
    
    Pn=zeros(4,1);
    
@@ -638,7 +630,7 @@ end
 function [Dn]=DynamicMatrix(e1, Q,omega,theta)
 
 
-c0=1;%*sqrt(1-sind(theta)/e1);
+c0=1;%cosd(theta);
   
  c1=sqrt(e1*(1+Q));
   c2=-sqrt(e1*(1+Q));

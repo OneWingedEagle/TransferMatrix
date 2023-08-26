@@ -1,4 +1,5 @@
-function trans_mat_MO
+function tf
+
 
 clear all
 
@@ -200,6 +201,12 @@ global epsin;
 global epsout;
 epsin=1;
 epsout=1;
+%line=getNewDataLine(fid);
+%numbs = str2num(line);
+%if(length(numbs)>0)
+%epsin=numbs(1);
+%epsout=numbs(2);
+%end
 
 wn0=wn1;
 
@@ -266,6 +273,8 @@ end
 %== Variable thinkness ends
 %====================================================
 
+TE=0;
+
 t1=cputime;
 
 dwn=(wn2-wn1)/ndiv;
@@ -285,11 +294,10 @@ for p=1:ndiv+1
     wvlen=Fn(p); 
     end
 
-
-   [Ts Rs,Fr]=TransferMatrixMultiLayer(eps1,epsdef,eps2,gama1,gamadef,...
-   gama2,dd1,ddef,dd2,N1,Ndef,N2,wvlen,p,theta,show_crystal);
+   [Ts Rs,Fr]=calculteFaraday(eps1,epsdef,eps2,dd1,ddef,dd2,N1,Ndef,N2,wvlen,...
+   p,theta,TE);
            
-      if(real(Ts)>1) 
+     if(real(Ts)>1) 
       %  Ts=1;
       end
       
@@ -339,6 +347,7 @@ fprintf(fid,'[wn *  Rotation * Transmitance ]\n');
   disp('[wn *  Rotation * Transmitance ]');	
   disp(result);
   
+  rotation=0;
 if(rotation &&length(Tr)>1)
                 figure(1)
              plot(Fn,Tr,colR);
@@ -367,11 +376,8 @@ if(rotation &&length(Tr)>1)
             
              hmin=-(div+1)*5;
              
-           end
-           
-% vertical axis of Faraday rotation
-hmin=-25;
-hmax=0;
+             end
+hmin=0;
              axis([wn1,wn2,hmin,hmax]);
              hold on
              
@@ -383,11 +389,12 @@ end
 if(transmit &&length(Tt)>1)
               figure(2)
                plot(Fn,Tt,colT);
-             %    axis([wn1,wn2,min(Tt),max(Tt)]);
+                 axis([wn1,wn2,min(Tt),max(Tt)]);
                 axis([wn1,wn2,0,1]);
                  hold on
             
 end
+
 
 
 
@@ -442,214 +449,170 @@ end
 
 
 
-function [Ts Rs Fr]=TransferMatrixMultiLayer(eps1,epsdef,eps2,...
-  gama1,gamadef,gama2,dd1,ddef,dd2,N1,Ndef,N2,wvlen,p,theta,show_crystal)
- 
-global epsin
-global epsout;
+function [Ts Rs Fr]=calculteFaraday(eps1,epsdef,eps2,dd1,ddef,dd2,...
+N1,Ndef,N2,wvlen,p,theta, TE)
 
+global ndiv;
+
+
+ lam=wvlen;%*1e-6;
 ev=1.60218e-19;
-wp=8.24*ev;
+wp=8.24;
 wc=0.048;
 
 lam1=wvlen*1e-6;
 c0=299792458.0;
 w=2.0*pi()*c0/lam1;
 em=1-wp^2/(w*(w+1i*wc));
+em;
+eps1(1,1)=real(em);
+eps2(1,3)=real(em);
 
-variable_d1=[0 0 0];
-variable_d2=[0 0 0];
-maxd=[0 0 0];
-mind=[1.0e10 1.0e10 1.0e10];
-for i=1:N1
-for j=1:3
-w=dd1(i,j);
-if(w>maxd(j)) maxd(j)=w; end
-if(w<mind(j)) mind(j)=w; end
-end
-end
-for j=1:3
-  if(maxd(j)~=mind(j))
-  variable_d1(j)=1;
- end
-end
+A = 4.92719645;
+B = 7.27691471;
+C =11.5786091e2 ;
+D = 42.7173925;
+E =100;
 
-maxd=[0 0 0];
-mind=[1.0e10 1.0e10 1.0e10];
-for i=1:N2
-for j=1:3
-w=dd2(i,j);
-if(w>maxd(j)) maxd(j)=w; end
-if(w<mind(j)) mind(j)=w; end
-end
-end
+esi2=A+B*lam1^2/(lam1^2-C)+D*lam1^2/(lam1^2-E);
 
-for j=1:3
-  if(maxd(j)~=mind(j))
-  variable_d2(j)=1;
- end
-end
-%%%%%%%%%%%%%%%%%%%%
- 
-lam=wvlen;
+eps1(1,3)=esi2;
+eps2(1,1)=esi2;
 
-omega=2*pi/lam*cosd(theta);
-
-%TT1=TransferMatrix(4.55,0,omega,0.094,theta);
-TT1=eye(4);
-Ts=1;
+ Ts=0;
  Rs=0;
-  Fr=0;
+ Fr=0;%%90*sin(2*pi*p/ndiv);
  
-  %$$$$============= stacks before defect
-  T1=TransferMatrix(eps1(1),gama1(1),omega,dd1(1,1),theta);
-  T2=TransferMatrix(eps1(2),gama1(2),omega,dd1(1,2),theta);
-  T3=TransferMatrix(eps1(3),gama1(3),omega,dd1(1,3),theta);
-  %%%%%%%%%%%%%%%
-   T123=T1*T2*T3;
-   TT1=T123*TT1;
-     
-  for n=2:N1
-   if(variable_d1(1)==1)
-    T1=TransferMatrix(eps1(1),gama1(1),omega,dd1(n,1),theta);
-   end
-   if(variable_d1(2)==1)
-    T2=TransferMatrix(eps1(2),gama1(2),omega,dd1(n,2),theta);
-   end
-   if(variable_d1(3)==1)
-    T3=TransferMatrix(eps1(3),gama1(3),omega,dd1(n,3),theta);
-   end
-   if(variable_d1(1)+variable_d1(2)+variable_d1(3)>0)
-    T123=T1*T2*T3;
-   end
-    TT1=T123*TT1;
-  end
+ e1=eps1(1);
+ e2=eps1(2);
+ e3=eps1(3);
   
-    %$$$$============= defect layer
-  if(Ndef>0)
-  T1=TransferMatrix(epsdef(1),gamadef(1),omega,ddef(1),theta);
-  T2=TransferMatrix(epsdef(2),gamadef(2),omega,ddef(2),theta);
-  T3=TransferMatrix(epsdef(3),gamadef(3),omega,ddef(3),theta);
-   T123=T1*T2*T3;
-   Tdef=T123;
-  for n=2:Ndef
-    Tdef=T123*Tdef;
-  end
-  
-end
+ n0=1;
 
-
-  %$$$$============= stacks after defect
-  if(N2>0)
-
-  T1=TransferMatrix(eps2(1),gama2(1),omega,dd2(1,1),theta);
-  T2=TransferMatrix(eps2(2),gama2(2),omega,dd2(1,2),theta);
-  T3=TransferMatrix(eps2(3),gama2(3),omega,dd2(1,3),theta);
-  %%%%%%%%%%%%%%%
-   T123=T1*T2*T3;
-   TT2=T123;
-  for n=2:N2
-   if(variable_d2(1)==1)
-      T1=TransferMatrix(eps2(1),gama2(1),omega,dd2(n,1),theta);
-   end   
-   if(variable_d2(2)==1)   
-      T2=TransferMatrix(eps2(2),gama2(2),omega,dd2(n,2),theta);
-   end   
-   if(variable_d2(3)==1)   
-      T3=TransferMatrix(eps2(3),gama2(3),omega,dd2(n,3),theta);
-   end
-     if(variable_d2(1)+variable_d2(2)+variable_d2(3)>0)
-      T123=T3*T2*T1;
-   end
-    TT2=T123*TT2;
-  end
-end
-
-  T=TT1;
-  if(Ndef>0)
-  T=Tdef*T;
-  end;
-  if(N2>0)
-  T=TT2*T;
-  end;
-  
-  
-  Din=DynamicMatrix(epsin,0,omega,theta);
-
-  Dout=DynamicMatrix(epsout,0,omega,theta);
-  
-    TT=inv(Dout)*T*Din;
-
- % TT=inv(D0)*T*D0;
  
-  ang=TT(3,3)/TT(1,1);
+ n1=sqrt(e1);
+ n2=sqrt(e2);
+ n3=sqrt(e3);
+
+ p0=cosd(theta)/n0;
+
+d1=dd1(1,1);
+d2=dd1(1,2);
+d3=dd1(1,3);
+
+
+ M1=zeros(2,2);
+ M2=zeros(2,2);
+ M3=zeros(2,2);
+ %%%%%%%%%%% layer 1
+kz1=2*pi*n1*cosd(theta)/lam;
+  phi1=kz1*d1;
   
-  Fr=angle(ang)*90./pi();
+   P1=zeros(2,2);
+   P1(1,1)=exp(1i*phi1);
+   P1(2,2)=exp(-1i*phi1);
   
-  t2=1./(TT(1,1)*conj(TT(1,1)));
+  D1=zeros(2,2);
+   D1(1,1)=1;
+     D1(1,2)=1;
+   D1(2,1)=-kz1;
+    D1(2,2)=kz1;
+    
+    M1=D1*P1*inv(D1);
+
+
+%%%%%%%%%%% layer 2
+  kz2=2*pi*n2*cosd(theta)/lam;
+  phi2=kz2*d2;
+   P2=zeros(2,2);
+   P2(1,1)=exp(1i*phi2);
+   P2(2,2)=exp(-1i*phi2);
+  
+  D2=zeros(2,2);
+   D2(1,1)=1;
+     D2(1,2)=1;
+   D2(2,1)=-kz2;
+    D2(2,2)=kz2;
+    
+  M2=D2*P2*inv(D2);
+  
+  %%%%%%%%%%% layer 3
+  kz3=2*pi*n3*cosd(theta)/lam;
+  phi3=kz3*d3;
+   P3=zeros(2,2);
+   P3(1,1)=exp(1i*phi3);
+   P3(2,2)=exp(-1i*phi3);
+  
+  D3=zeros(2,2);
+   D3(1,1)=1;
+     D3(1,2)=1;
+   D3(2,1)=-kz3;
+    D3(2,2)=kz3;
+    
+  M3=D3*P3*inv(D3);
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  ML=M1*M2*M3;
+   MU=M3*M2*M1;
+   
+   MML=eye(2);
+
+  for n=1:N1
+    MML=MML*ML;
+  end
+  
+    MMU=eye(2);
+    
+  for n=1:N2
+    MMU=MMU*MU;
+  end
+
+  
+  %MM=MML*MMU;
+  Mdef=eye(2);
+ if(Ndef>0)
+  nf=sqrt(epsdef(1));
+  df=ddef(1,1);
+   %%%%%%%%%%% defect layer
+   kzf=2*pi*nf*cosd(theta)/lam;
+  phif=kzf*df;
+
+   Pf=zeros(2,2);
+   Pf(1,1)=exp(1i*phif);
+   Pf(2,2)=exp(-1i*phif);
+  
+  Df=zeros(2,2);
+   Df(1,1)=1;
+     D3(1,2)=1;
+   Df(2,1)=-kzf;
+    Df(2,2)=kzf;
+    
+    Mdef=Df*Pf*inv(Df);
+ end
+ 
+  MM=MML*Mdef*MMU;
+   %%%%%%%%%%%
+
+  kz0=2*pi*n0*cosd(theta)/lam;  
+    D0=zeros(2,2);
+    
+   D0(1,1)=1;
+   D0(1,2)=1;
+   D0(2,1)=-kz0;
+   D0(2,2)=kz0;
+
+%   M=D0*MM*inv(D0);
+    TT=inv(D0)*MM*D0;
+
+    m11=TT(1,1);
+  
+  t2=1./(m11*conj(m11));
 
  Ts=abs(t2);
+ % Ts=abs(t2);
 
 end
 
-
-
-function [T]=TransferMatrix(eps,gamma,omega,d,theta)
-  %disp('----------')
-  %eps
-  %gamma
-  %d
-     Q=gamma/eps;
-
-  Dn=DynamicMatrix(eps,Q,omega,theta);
-  
-  Pn=PropagationMatrix(eps,Q,omega,d,theta);
-
-   T=Dn*Pn*inv(Dn);
-    
-end
-
-function [Pn]=PropagationMatrix(e1, Q,omega,d,theta)
-
-
-  kz=omega*[0 0 1]';
-  
-  kv1=sqrt(e1*(1+Q))*kz;
-  kv2=-sqrt(e1*(1+Q))*kz;
-  kv3=sqrt(e1*(1-Q))*kz; 
-  kv4=-sqrt(e1*(1-Q))*kz; 
-  
-   phi1=kv1(3)*d;
-   phi2=kv2(3)*d;
-   phi3=kv3(3)*d;
-   phi4=kv4(3)*d;
-   
-   Pn=zeros(4,1);
-   
-   Pn(1,1)=exp(-1i*phi1);
-    Pn(2,2)=exp(-1i*phi2);
-     Pn(3,3)=exp(-1i*phi3);
-      Pn(4,4)=exp(-1i*phi4);
-
-end
-
-
-
-function [Dn]=DynamicMatrix(e1, Q,omega,theta)
-
-
-c0=1;%*sqrt(1-sind(theta)/e1);
-  
- c1=sqrt(e1*(1+Q));
-  c2=-sqrt(e1*(1+Q));
-  c3=sqrt(e1*(1-Q)); 
-  c4=-sqrt(e1*(1-Q)); 
-  
-      Dn=cosd(theta)*1./sqrt(2)*[c0 -c0 c0 -c0;...
-     c1 -c2 c3 -c4;...
-    c0*1i -c0*1i -c0*1i c0*1i;...
-    -c1*1i c2*1i c3*1i -c4*1i];
-end
 
 function line=getNewDataLine(fid)
 
@@ -664,3 +627,4 @@ end
 
 
 end
+

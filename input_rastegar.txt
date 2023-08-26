@@ -4,30 +4,30 @@
 0
 ///============================= before defect
 // d1 d2 d3 (micron) 
-0.20 0.20  0.
+0.3875 0.3875 0.
 //EPS1 EPS2 EPS3  
-4.88	2.1	 1.0
+2.15267584	 4.884 1.0
 //GAMMA1 GAMMA2 GAMMA3 
-0.009   .00  0.0
+0.0  0.009 .00 
 ///============================= defect
 // d1 d2 d3 (micron) 
-0.2 0.0  0.
+0.3875 0.0  0.
 //EPS1 EPS2 EPS3  
-4.88	4.88	 4.88
+4.884	1	 1
 //GAMMA1 GAMMA2 GAMMA3 
-0.009  0.009 0.0
+0.009  0.00 0.0
 ///============================= aftre defect
 // d1 d2 d3 (micron) 
-0.20 0.20  0.
+0  0.3875 0.3875
 //EPS1 EPS2 EPS3  
-2.1	4.88	 1.0
+1.0  4.884 2.15267584	
 //GAMMA1 GAMMA2 GAMMA3 
-0   0.009 0.0
+0     0.0090   0.0
 ///=============================
 //Num_STACKS_before_def *  num defects * Num_STACKS_before_def
 9 2 9
 //Transmittivity  FaradayRotation
-1 1
+2   2
 //========  wavelength (micron)
 // start	end DIVISION
 .8 2.2 360
